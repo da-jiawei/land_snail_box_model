@@ -13,7 +13,7 @@ theme = theme(axis.text.x = element_text(margin = margin(t = 0.1, unit = "cm")),
               panel.grid.major = element_blank())
 
 #### LOAD AND GROOM DATA ----
-raw_data = read_xlsx("data/continuous_monitoring/Zong-2023-QSR.xlsx", sheet = 1, skip = 1)
+raw_data = read_xlsx("data/Zong-2023-QSR.xlsx", sheet = 1, skip = 1)
 meteorological_data = raw_data[, 1:4] |>
   drop_na() 
 names(meteorological_data) = c("date", "P_mm", "d18_p", "dD_p")

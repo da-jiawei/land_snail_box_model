@@ -43,8 +43,6 @@ data_obs = list(
   "length" = nrow(d18_bw),
   "d18_bw_obs" = d18_bw,
   "d2_bw_obs" = d2_bw,
-  # "d18_w_obs" = monitor_data$d18_sw,
-  # "d2_w_obs" = monitor_data$dD_sw,
   "temp_obs" = temp,
   "RH_obs" = RH
 )
@@ -52,10 +50,11 @@ parms = c("RH", "temp", "theta",
           "d18_in", "d2_in", 
           "d18_bw", "d2_bw")
 system.time({post.clp = jags.parallel(data_obs, NULL, parms, "model/flux_balance_model_bayesian_inversion_ver2.R",
-                                      n.iter = 1e5, n.chains = 3, n.burnin = 5e4)})
+                                      n.iter = 5e5, n.chains = 5, n.burnin = 1e5)})
+save(post.clp, file = "output/ver2.rda")
 
 view(post.clp$BUGSoutput$summary)
-# traceplot(post.clp, varname = "theta")
+# traceplot(post.clp, varname = "d18_in")
 post_data = data.frame("date" = monitor_data$date)
 for (i in 1:length(parms)) {
   post_data$Rhat = post.clp$BUGSoutput$summary[grep(parms[i], rownames(post.clp$BUGSoutput$summary)), "Rhat"]
@@ -76,134 +75,151 @@ write.csv(data, file = "output/posteriors_scenario2.csv")
 #### PLOT ----
 data = read_csv("output/posteriors_scenario2.csv")
 data$DRH = data$post_RH - data$RH_mean/1e2
-p1 = ggplot(data) +
+p1 = ggplot(data, aes(x = RH_mean, y = DRH * 1e2)) +
   geom_abline(slope = 0, intercept = 0) +
-  # geom_errorbar(aes(x = RH_mean, y = DRH * 1e2,
-  #                   ymin = (DRH - post_RH_sd)*1e2, ymax = (DRH + post_RH_sd)*1e2),
-  #               linewidth = .2, width = 0, color = "grey80") +
-  geom_point(aes(x = RH_mean, y = DRH * 1e2, fill = T_mean, alpha = RH_eff), 
+  geom_errorbar(aes(ymin = (DRH - post_RH_sd)*1e2, 
+                    ymax = (DRH + post_RH_sd)*1e2,
+                    alpha = RH_eff),
+                linewidth = .2, width = 0, color = "grey80") +
+  geom_point(aes(fill = T_mean, alpha = RH_eff), 
              shape = 21, size = 2) +
+  annotate("text", x = 95, y = 24, label = "a", size = 5, fontface = "bold") +
   scale_alpha_manual(values = c("positive" = 1, "negative" = 0.5)) +
   scale_fill_distiller(palette = "RdBu") +
   theme_bw() + theme +
   guides(alpha = "none") +
-  theme(legend.position = "top") +
+  theme(legend.position = "right") +
   labs(x = expression("RH"[mean]*" (%)"),
        y = expression(Delta*"RH"[post-mean]*" (%)"), 
        fill = expression(paste("T"[mean]*" (", degree, "C)")))
 
 data$DT = data$post_temp - data$T_mean
-p2 = ggplot(data) +
+p2 = ggplot(data, aes(x = RH_mean, y = DT)) +
   geom_abline(slope = 0, intercept = 0) +
-  # geom_errorbar(aes(x = T_mean, y = post_temp, xmin = T_min, xmax = T_max), 
-  #               linewidth = .2, width = 0, color = "grey80") +
-  geom_errorbar(aes(x = RH_mean, y = DT, 
-                    ymin = DT - post_temp_sd, ymax = DT + post_temp_sd), 
+  geom_errorbar(aes(ymin = DT - post_temp_sd, 
+                    ymax = DT + post_temp_sd,
+                    alpha = RH_eff), 
                 linewidth = .2, width = 0, color = "grey80") +
-  geom_point(aes(x = RH_mean, y = DT, fill = T_mean, alpha = temp_eff), 
+  geom_point(aes(fill = T_mean, alpha = temp_eff), 
              shape = 21, size = 2) +
+  annotate("text", x = 95, y = -3.5, label = "b", size = 5, fontface = "bold") +
   scale_alpha_manual(values = c("positive" = 1, "negative" = 0.5)) +
   scale_fill_distiller(palette = "RdBu", direction = -1) +
   theme_bw() + theme +
   guides(alpha = "none") +
-  theme(legend.position = "top") +
+  theme(legend.position = "right") +
   labs(x = expression("RH"[mean]*" (%)"),
        y = expression(paste(Delta*"T (", degree, "C)")),
        fill = expression(paste("T"[mean]*" (", degree, "C)")))
 
-p3 = ggplot(data) +
-  geom_abline(slope = 1, intercept = 0) +
-  geom_point(data = sims, aes(x = d18_bw, y = d18_ss), shape = 22, size = 2, color = "grey80") +
-  # geom_errorbar(aes(x = d18_bw, y = post_d18_bw, 
-  #                   ymin = post_d18_bw - post_d18_bw_sd, ymax = post_d18_bw + post_d18_bw_sd), 
-  #               linewidth = .2, width = 0, color = "grey80") +
-  geom_point(aes(x = d18_bw, y = post_d18_bw, fill = RH_mean, alpha = d18_bw_eff), shape = 21, size = 2) +
-  scale_alpha_manual(values = c("positive" = 1, "negative" = 0.5)) +
-  scale_fill_distiller(palette = "RdBu", direction = 1) +
-  theme_bw() + theme +
-  guides(alpha = "none") +
-  theme(legend.position = "top") +
-  labs(x = expression(paste(delta^"18"*"O"[bw])),
-       y = expression(paste(delta^"18"*"O"[bw_post])),
-       fill = expression("RH"[mean]*" (%)"))
-
-p4 = ggplot(data) +
-  geom_abline(slope = 1, intercept = 0) +
-  geom_point(data = sims, aes(x = d2_bw, y = d2_ss), shape = 22, size = 2, color = "grey80") +
-  geom_point(aes(x = dD_bw, y = post_d2_bw, fill = RH_mean, alpha = d2_bw_eff), shape = 21, size = 2) +
-  scale_alpha_manual(values = c("positive" = 1, "negative" = 0.5)) +
-  scale_fill_distiller(palette = "RdBu", direction = 1) +
-  theme_bw() + theme +
-  guides(alpha = "none") +
-  theme(legend.position = "top") +
-  labs(x = expression(paste(delta*"D"[bw])),
-       y = expression(paste(delta*"D"[bw_post])),
-       fill = expression("RH"[mean]*" (%)"))
-
-p5 = ggplot(data) +
-  geom_errorbar(aes(x = RH_mean, y = post_theta,
-                    ymin = post_theta - post_theta_sd, ymax = post_theta + post_theta_sd),
+p3 = ggplot(data, aes(x = RH_mean, y = post_theta)) +
+  geom_errorbar(aes(ymin = post_theta - post_theta_sd, 
+                    ymax = post_theta + post_theta_sd,
+                    alpha = theta_eff),
                 linewidth = .2, width = 0, color = "grey80") +
-  geom_point(aes(x = RH_mean, y = post_theta, fill = T_mean, alpha = theta_eff),
+  geom_point(aes(fill = T_mean, alpha = theta_eff),
              shape = 21, size = 2) +
+  annotate("text", x = 35, y = .19, label = "c", size = 5, fontface = "bold") +
   scale_alpha_manual(values = c("positive" = 1, "negative" = 0.5)) +
   scale_fill_distiller(palette = "RdBu") +
   guides(alpha = "none") +
   theme_bw() + theme +
-  theme(legend.position = "top") +
+  theme(legend.position = "right") +
   labs(fill = expression(paste("T"[mean]*" (", degree, "C)")),
        y = expression(italic(theta)*" (F"[out]*"/ F"["in"]*")"),
        x = expression("RH"[mean]*" (%)"))
+upper = ggarrange(p1, p2, p3, nrow = 1, ncol = 3, align = "hv", 
+                  common.legend = TRUE, legend = "right")
+upper 
 
-ggarrange(p1, p2, p5, p3, p4, nrow = 2, ncol = 3, align = "hv", labels = c("a", "b", "c", "d", "e"))
-ggarrange(p1, p2, p5, p3, p4, p6, nrow = 2, ncol = 3, align = "hv", labels = c("a", "b", "c", "d", "e", "f"))
-ggsave("figures/scenario1_rainfall.jpg", width = 7.9, height = 6.6, dpi = 500)
-
-plot_vapor = ggplot(data) +
-  geom_errorbar(aes(x = RH_mean, y = post_dew_influx_ratio,
-                    ymin = post_dew_influx_ratio - post_dew_influx_ratio_sd, ymax = post_dew_influx_ratio + post_dew_influx_ratio_sd),
+p4 = ggplot(data, aes(x = d18_bw, y = post_d18_bw)) +
+  geom_abline(slope = 1, intercept = 0) +
+  geom_point(data = sims, aes(x = d18_bw, y = d18_ss), shape = 22, size = 2, color = "grey80") +
+  geom_errorbar(aes(ymin = post_d18_bw - post_d18_bw_sd, 
+                    ymax = post_d18_bw + post_d18_bw_sd,
+                    alpha = d18_bw_eff),
                 linewidth = .2, width = 0, color = "grey80") +
-  geom_point(aes(x = RH_mean, y = post_dew_influx_ratio, fill = T_mean),
+  geom_point(aes(fill = RH_mean, alpha = d18_bw_eff), 
              shape = 21, size = 2) +
-  scale_fill_distiller(palette = "RdBu") +
+  annotate("text", x = -15, y = 14, label = "d", size = 5, fontface = "bold") +
+  scale_alpha_manual(values = c("positive" = 1, "negative" = 0.5)) +
+  scale_fill_distiller(palette = "RdBu", direction = 1) +
   theme_bw() + theme +
-  labs(fill = expression(paste("T"[mean]*" (", degree, "C)")),
-       y = expression("F"[dew]*"/F"["in"]),
-       x = expression("RH"[mean]*" (%)"))
-ggarrange(plot_theta, plot_vapor, nrow = 1, ncol = 2, align = "hv", common.legend = TRUE, legend = "top")
+  guides(alpha = "none") +
+  theme(legend.position = "right") +
+  labs(x = expression(paste("measured "*delta^"18"*"O"[bw]*" (\u2030)")),
+       y = expression(paste("modeled "*delta^"18"*"O"[bw]*" (\u2030)")),
+       fill = expression("RH"[mean]*" (%)"))
+
+p5 = ggplot(data, aes(x = dD_bw, y = post_d2_bw)) +
+  geom_abline(slope = 1, intercept = 0) +
+  geom_point(data = sims, aes(x = d2_bw, y = d2_ss), shape = 22, size = 2, color = "grey80") +
+  geom_errorbar(aes(ymin = post_d2_bw - post_d2_bw_sd, 
+                    ymax = post_d2_bw + post_d2_bw_sd,
+                    alpha = RH_eff),
+                linewidth = .2, width = 0, color = "grey80") +
+  geom_point(aes(fill = RH_mean, alpha = d2_bw_eff), shape = 21, size = 2) +
+  annotate("text", x = -110, y = 65, label = "e", size = 5, fontface = "bold") +
+  scale_alpha_manual(values = c("positive" = 1, "negative" = 0.5)) +
+  scale_fill_distiller(palette = "RdBu", direction = 1) +
+  theme_bw() + theme +
+  guides(alpha = "none") +
+  theme(legend.position = "right") +
+  labs(x = expression(paste("measured "*delta*"D"[bw]*" (\u2030)")),
+       y = expression(paste("modeled "*delta*"D"[bw]*" (\u2030)")),
+       fill = expression("RH"[mean]*" (%)"))
 
 summary(lm(data = meteorological_data, dD_p ~ d18_p))
 summary(lm(data = monitor_data, dD_sw ~ d18_sw))
-p6 = ggplot(data) +
+p6 = ggplot(data, aes(x = post_d18_in, y = post_d2_in)) +
   geom_abline(slope = 7.8, intercept = 12) +
   geom_abline(slope = 7.3, intercept = .9, linetype = "dashed") +
+  geom_errorbar(aes(xmin = post_d18_in - post_d18_in_sd,
+                    xmax = post_d18_in + post_d18_in_sd),
+                linewidth = .2, color = "grey80") +
+  geom_errorbar(aes(ymin = post_d2_in - post_d2_in_sd,
+                    ymax = post_d2_in + post_d2_in_sd,
+                    alpha = d2_in_eff),
+                linewidth = .2, color = "grey80") +
   # geom_point(data = meteorological_data,
   #            aes(x = d18_p, y = dD_p), color = "grey80", shape = 21) +
   geom_point(aes(x = d18_sw, y = dD_sw, color = RH_mean), shape = 21, size = 2) +
-  geom_point(aes(x = post_d18_in, y = post_d2_in, fill = RH_mean), shape = 22, size = 2) +
-  # scale_alpha_manual(values = c("positive" = 1, "negative" = 0.5)) +
+  geom_point(aes(fill = RH_mean, alpha = d2_in_eff), shape = 22, size = 2) +
+  annotate("text", x = -18, y = 13, label = "f", size = 5, fontface = "bold") +
+  scale_alpha_manual(values = c("positive" = 1, "negative" = 0.5)) +
   scale_fill_distiller(palette = "RdBu", direction = 1) +
   scale_color_distiller(palette = "RdBu", direction = 1) +
   theme_bw() + theme +
-  theme(legend.position = "top") +
-  guides(color = "none") +
+  theme(legend.position = "right") +
+  guides(color = "none",
+         alpha = "none") +
   labs(x = expression(delta^"18"*"O (\u2030)"),
        y = expression(delta*"D (\u2030)"),
        fill = expression("RH"[mean]*" (%)"))
-p6
+lower = ggarrange(p4, p5, p6, nrow = 1, ncol = 3,
+                  common.legend = TRUE, legend = "right")
+lower
+
+ggarrange(upper, lower, nrow = 2, ncol = 1, align = "hv", common.legend = TRUE)
+ggsave("figures/scenario2.jpg", width = 8.3, height = 5.1, dpi = 500)
+
 
 #### comparing din posteriors with dp ----
 p1 = ggplot(data, aes(x = RH_mean, y = d18_p - post_d18_in)) +
   geom_abline(slope = 0, intercept = 0) +
   geom_errorbar(aes(ymin = d18_p - post_d18_in - post_d18_in_sd,
-                    ymax = d18_p - post_d18_in + post_d18_in_sd),
+                    ymax = d18_p - post_d18_in + post_d18_in_sd,
+                    alpha = d18_in_eff),
                 linewidth = .2, color = "grey80") +
-  geom_point(aes(fill = T_mean),
+  geom_point(aes(fill = T_mean,
+                 alpha = d18_in_eff),
              shape = 21, size = 2.5) +
   annotate("text", x = 100, y = 18, hjust = 1,
            label = "a", fontface = "bold", size = 5) +
+  scale_alpha_manual(values = c("positive" = 1, "negative" = 0.5)) +
   scale_fill_distiller(palette = "RdBu", direction = -1) +
   theme_bw() + theme +
+  guides(alpha = "none") +
   labs(x = expression("RH"[mean]*" (%)"),
        y = expression(Delta^"18"*"O"[p-"in"]*" (\u2030)"),
        fill = expression(paste("T"[mean]*" (", degree, "C)")))
@@ -211,19 +227,23 @@ p1 = ggplot(data, aes(x = RH_mean, y = d18_p - post_d18_in)) +
 p2 = ggplot(data, aes(x = RH_mean, y = d18_sw - post_d18_in)) +
   geom_abline(slope = 0, intercept = 0) +
   geom_errorbar(aes(ymin = d18_sw - post_d18_in - post_d18_in_sd,
-                    ymax = d18_sw - post_d18_in + post_d18_in_sd),
+                    ymax = d18_sw - post_d18_in + post_d18_in_sd,
+                    alpha = d18_in_eff),
                 linewidth = .2, color = "grey80") +
-  geom_point(aes(fill = T_mean),
+  geom_point(aes(fill = T_mean,
+                 alpha = d18_in_eff),
              shape = 21, size = 2.5) +
-  annotate("text", x = 100, y = 20, hjust = 1,
+  annotate("text", x = 100, y = 18.5, hjust = 1,
            label = "b", fontface = "bold", size = 5) +
+  scale_alpha_manual(values = c("positive" = 1, "negative" = 0.5)) +
   scale_fill_distiller(palette = "RdBu", direction = -1) +
+  guides(alpha = "none") +
   theme_bw() + theme +
   labs(x = expression("RH"[mean]*" (%)"),
        y = expression(Delta^"18"*"O"[sw-"in"]*" (\u2030)"),
        fill = expression(paste("T"[mean]*" (", degree, "C)")))
 ggarrange(p1, p2, nrow = 1, ncol = 2, align = "hv", common.legend = TRUE, legend = "right")
-ggsave("figures/D18_difference_scenario2.jpg", width = 7, height = 3.5, dpi = 500)
+ggsave("figures/scenario2_D18_difference.jpg", width = 7, height = 3.5, dpi = 500)
 
 
 

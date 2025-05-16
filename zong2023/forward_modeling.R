@@ -44,6 +44,7 @@ write_csv(sims, file = "output/forward_model_results.csv")
 
 # plot model-data comparison
 pal = c("#a6cee3", "#1f78b4", "#b2df8a", "#33a02c")
+jpeg("figures/time_series.jpg", width = 4.4, height = 5.2, units = "in", res = 600)
 par(mar = c(4,4,1,4))
 plot(0, 0, xlim = c(range(sims$date)), ylim = c(0, 3.5), axes = FALSE,
      xlab = "", ylab = "")
@@ -69,7 +70,7 @@ mtext(expression(paste(delta^"18"*"O (\u2030)")), 2, line = 2.5, at = 3)
 
 # dD
 yext = range(sims$d2_ss, sims$d2_bw, sims$d2_sw, meteorological_data$dD_p)
-tix = seq(floor(min(yext)-12), ceiling(max(yext)), by = 50)
+tix = seq(floor(min(yext)-8), ceiling(max(yext)), by = 50)
 d2_ss.rs = cbind(sims$date, 
                  1.5 + (sims$d2_ss - min(tix)) / diff(range(tix)))
 d2_bw.rs = cbind(sims$date, 
@@ -102,7 +103,7 @@ axis(2, 0 + (tix - min(tix)) / diff(range(tix)), tix)
 mtext("P (mm)", 2, line = 2.5, at = 0.5)
 
 yext = range(sims$D18)
-tix = seq(floor(min(yext)+1), ceiling(max(yext)+3), by = 5)
+tix = seq(floor(min(yext)-1), ceiling(max(yext)+3), by = 5)
 D18.rs = cbind(sims$date,
                0 + (sims$D18 - min(tix)) / diff(range(tix)))
 lines(D18.rs[, 1], D18.rs[, 2], col = pal[2], lwd = 1)
@@ -112,46 +113,10 @@ mtext(expression(paste(Delta^"18"*"O (\u2030)")), 4, line = 2.5, at = 0.5)
 tix = seq(from = min(sims$date), to = max(sims$date), by = "1 month")
 axis(1, at = tix, labels = format(tix, "%Y-%m"))
 
-legend(x = min(sims$date), y = 2, 
+legend(x = min(sims$date), y = 1.9, 
        legend = c(expression(delta^"18"*"O"[bw_modeled]),
                   expression(delta^"18"*"O"[bw]),
                   expression(delta^"18"*"O"[sw])),
        col = pal, lty = 1, lwd = 2, cex = 1, bty = "n", bg = NA)
 dev.off()
-
-#
-sims2 = sims |>
-  pivot_longer(cols = c(d18_ss, d18_sw, d18_bw, d2_ss, d2_sw, d2_bw),
-                     names_to = c(".value", "label"),
-                     names_sep = "_") |>
-  select(date, label, d18, d2)
-
-sims2$label = factor(sims2$label,
-                        levels = c("ss", "bw", "sw"),
-                        labels = c("modeled body water", "body water", "soil water"))
-m1 = lm(d2_sw ~ d18_sw, data = sims)
-summary(m1)
-m2 = lm(d2_bw ~ d18_bw, data = sims)
-summary(m2)
-m3 = lm(d2_ss ~ d18_ss, data = sims)
-summary(m3)
-
-ggplot(sims2) +
-  geom_abline(slope = m1$coefficients[2],
-              intercept = m1$coefficients[1],
-              color = pal[3]) +
-  geom_abline(slope = m2$coefficients[2],
-              intercept = m2$coefficients[1],
-              color = pal[2]) +
-  geom_abline(slope = m3$coefficients[2],
-              intercept = m3$coefficients[1],
-              color = pal[1]) +
-  geom_point(aes(x = d18, y = d2, color = label),
-             shape = 21, size = 2) +
-  scale_color_manual(values = pal) + 
-  theme_bw() + theme +
-  labs(x = expression(delta^"18"*"O (\u2030)"),
-       y = expression(delta*"D (\u2030)"),
-       color = "") +
-  guides(color = "none")
 
