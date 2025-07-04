@@ -42,9 +42,9 @@ sims = sims |>
   drop_na(d18_sw)
 write_csv(sims, file = "output/forward_model_results.csv")
 
-# plot model-data comparison
+# plot model-data comparison ----
 pal = c("#a6cee3", "#1f78b4", "#b2df8a", "#33a02c")
-jpeg("figures/time_series.jpg", width = 4.4, height = 5.2, units = "in", res = 600)
+jpeg("figures/Fig_2_time_series.jpg", width = 4.4, height = 5.2, units = "in", res = 500)
 par(mar = c(4,4,1,4))
 plot(0, 0, xlim = c(range(sims$date)), ylim = c(0, 3.5), axes = FALSE,
      xlab = "", ylab = "")
@@ -118,5 +118,9 @@ legend(x = min(sims$date), y = 1.9,
                   expression(delta^"18"*"O"[bw]),
                   expression(delta^"18"*"O"[sw])),
        col = pal, lty = 1, lwd = 2, cex = 1, bty = "n", bg = NA)
+text(x = max(sims$date)-30, y = 3.4, labels = "a", font = 2, cex = 1.2)
+text(x = max(sims$date)-30, y = 2.3, labels = "b", font = 2, cex = 1.2)
+text(x = max(sims$date)-30, y = 1, labels = "c", font = 2, cex = 1.2)
+
 dev.off()
 

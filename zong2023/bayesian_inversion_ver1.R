@@ -4,10 +4,10 @@ set.seed(42)
 theme = theme(axis.text.x = element_text(margin = margin(t = 0.1, unit = "cm")),
               axis.text.y = element_text(margin = margin(r = 0.1, unit = "cm")),
               axis.ticks.length=unit(0.15, "cm"),
-              axis.ticks = element_line(colour = "black"),
+              axis.ticks = element_line(color = "black"),
               text = element_text(size = 10),
               axis.title = element_text(size = 12), 
-              axis.text = element_text(size = 10),
+              axis.text = element_text(size = 10, color = "black"),
               legend.text = element_text(size = 10),
               legend.title = element_text(size = 11),
               legend.key.width = unit(.5, "cm"),
@@ -110,7 +110,7 @@ p2 = ggplot(data, aes(x = RH_mean, y = DT)) +
   guides(alpha = "none") +
   theme(legend.position = "right") +
   labs(x = expression("RH"[mean]*" (%)"),
-       y = expression(paste(Delta*"T (", degree, "C)")),
+       y = expression(paste(Delta*"T"[post-mean]*" (", degree, "C)")),
        fill = expression(paste("T"[mean]*" (", degree, "C)")))
 
 p3 = ggplot(data, aes(x = RH_mean, y = post_theta)) +
@@ -173,7 +173,7 @@ lower = ggarrange(p4, p5, nrow = 1, ncol = 2,
                   common.legend = TRUE, legend = "right")
 lower
 ggarrange(upper, lower, nrow = 2, ncol = 1, common.legend = TRUE)
-ggsave("figures/scenario1.jpg", width = 7.7, height = 4.7, dpi = 500)
+ggsave("figures/Figure_4_scenario1.jpg", width = 7.7, height = 4.7, dpi = 500)
 
 
 

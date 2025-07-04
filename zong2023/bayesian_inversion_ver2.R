@@ -4,15 +4,14 @@ set.seed(42)
 theme = theme(axis.text.x = element_text(margin = margin(t = 0.1, unit = "cm")),
               axis.text.y = element_text(margin = margin(r = 0.1, unit = "cm")),
               axis.ticks.length=unit(0.15, "cm"),
-              axis.ticks = element_line(colour = "black"),
+              axis.ticks = element_line(color = "black"),
               text = element_text(size = 10),
               axis.title = element_text(size = 12), 
-              axis.text = element_text(size = 10),
+              axis.text = element_text(size = 10, color = "black"),
               legend.text = element_text(size = 10),
               legend.title = element_text(size = 11),
               legend.key.width = unit(.5, "cm"),
-              panel.grid.minor = element_blank(),
-              panel.grid.major = element_blank())
+              panel.grid = element_blank())
 
 #### load and groom data ----
 meteorological_data = read_csv("output/meteorological_data_zong2023.csv")
@@ -109,7 +108,7 @@ p2 = ggplot(data, aes(x = RH_mean, y = DT)) +
   guides(alpha = "none") +
   theme(legend.position = "right") +
   labs(x = expression("RH"[mean]*" (%)"),
-       y = expression(paste(Delta*"T (", degree, "C)")),
+       y = expression(paste(Delta*"T"[post-mean]*" (", degree, "C)")),
        fill = expression(paste("T"[mean]*" (", degree, "C)")))
 
 p3 = ggplot(data, aes(x = RH_mean, y = post_theta)) +
@@ -201,7 +200,7 @@ lower = ggarrange(p4, p5, p6, nrow = 1, ncol = 3,
 lower
 
 ggarrange(upper, lower, nrow = 2, ncol = 1, align = "hv", common.legend = TRUE)
-ggsave("figures/scenario2.jpg", width = 8.3, height = 5.1, dpi = 500)
+ggsave("figures/Figure_5_scenario2.jpg", width = 8.3, height = 5.1, dpi = 500)
 
 
 #### comparing din posteriors with dp ----
@@ -243,7 +242,7 @@ p2 = ggplot(data, aes(x = RH_mean, y = d18_sw - post_d18_in)) +
        y = expression(Delta^"18"*"O"[sw-"in"]*" (\u2030)"),
        fill = expression(paste("T"[mean]*" (", degree, "C)")))
 ggarrange(p1, p2, nrow = 1, ncol = 2, align = "hv", common.legend = TRUE, legend = "right")
-ggsave("figures/scenario2_D18_difference.jpg", width = 7, height = 3.5, dpi = 500)
+ggsave("figures/Figure_6_scenario2_D18_difference.jpg", width = 7, height = 3.5, dpi = 500)
 
 
 

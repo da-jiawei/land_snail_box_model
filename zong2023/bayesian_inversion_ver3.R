@@ -5,15 +5,14 @@ set.seed(42)
 theme = theme(axis.text.x = element_text(margin = margin(t = 0.1, unit = "cm")),
               axis.text.y = element_text(margin = margin(r = 0.1, unit = "cm")),
               axis.ticks.length=unit(0.15, "cm"),
-              axis.ticks = element_line(colour = "black"),
+              axis.ticks = element_line(color = "black"),
               text = element_text(size = 10),
               axis.title = element_text(size = 12), 
-              axis.text = element_text(size = 10),
+              axis.text = element_text(size = 10, color = "black"),
               legend.text = element_text(size = 10),
               legend.title = element_text(size = 11),
               legend.key.width = unit(.5, "cm"),
-              panel.grid.minor = element_blank(),
-              panel.grid.major = element_blank())
+              panel.grid = element_blank())
 
 #### load and groom data ----
 meteorological_data = read_csv("output/meteorological_data_zong2023.csv")
@@ -109,7 +108,7 @@ p2 = ggplot(data, aes(x = RH_mean, y = DT)) +
   guides(alpha = "none") +
   theme(legend.position = "right") +
   labs(x = expression("RH"[mean]*" (%)"),
-       y = expression(paste(Delta*"T (", degree, "C)")),
+       y = expression(paste(Delta*"T"[post-mean]*" (", degree, "C)")),
        fill = expression(paste("T"[mean]*" (", degree, "C)")))
 
 p3 = ggplot(data, aes(x = RH_mean, y = post_theta)) +
@@ -189,15 +188,24 @@ p6 = ggplot(data, aes(x = RH_mean, y = post_dew_influx_ratio)) +
 lower = ggarrange(p4, p5, p6, nrow = 1, ncol = 3, align = "hv",
                   common.legend = TRUE, legend = "right")
 ggarrange(upper, lower, nrow = 2, ncol = 1, align = "hv", common.legend = TRUE)
-ggsave("figures/scenario3.jpg", width = 8.3, height = 5.1, dpi = 500)
+ggsave("figures/Figure_7_scenario3.jpg", width = 8.3, height = 5.1, dpi = 500)
 
 #### comparing posterior dp with measured dp ----
+m1 = lm(data = data, post_d18_w ~ d18_p)
+summary(m1)
 p1 = ggplot(data, aes(x = d18_p, y = post_d18_w)) +
   geom_errorbar(aes(ymin = post_d18_w - post_d18_w_sd,
                     ymax = post_d18_w + post_d18_w_sd),
                 linewidth = .2, color = "grey80") +
   geom_abline(slope = 1, intercept = 0) +
+  geom_abline(slope = 0.766, intercept = -1.93, linetype = "dashed") +
   geom_point(aes(fill = drought_days, alpha = d18_w_eff), shape = 21, size = 3) +
+  annotate("text", x = -5, y = -15, 
+           label = expression("R"^"2"*" = 0.75"),
+           hjust = 0, size = 4) +
+  annotate("text", x = -5, y = -17, 
+           label = expression(italic(p)*" < 0.001"),
+           hjust = 0, size = 4) +
   annotate("text", x = -19, y = 3, label = "a",
            hjust = 0, size = 5, fontface = "bold") +
   scale_fill_distiller(palette = "RdBu", direction = -1) +
@@ -208,12 +216,21 @@ p1 = ggplot(data, aes(x = d18_p, y = post_d18_w)) +
        y = expression(delta^"18"*"O"[post]*" (\u2030)"),
        fill = "days")
 
+m2 = lm(data = data, post_d2_w ~ d2_p)
+summary(m2)
 p2 = ggplot(data, aes(x = d2_p, y = post_d2_w)) +
   geom_errorbar(aes(ymin = post_d2_w - post_d2_w_sd,
                     ymax = post_d2_w + post_d2_w_sd),
                 linewidth = .2, color = "grey80") +
   geom_abline(slope = 1, intercept = 0) +
+  geom_abline(slope = 0.779, intercept = -21.03, linetype = "dashed") +
   geom_point(aes(fill = drought_days, alpha = d2_w_eff), shape = 21, size = 3) +
+  annotate("text", x = -20, y = -105, 
+           label = expression("R"^"2"*" = 0.79"),
+           hjust = 0, size = 4) +
+  annotate("text", x = -20, y = -120, 
+           label = expression(italic(p)*" < 0.001"),
+           hjust = 0, size = 4) +
   annotate("text", x = -140, y = 15, label = "b",
            hjust = 0, size = 5, fontface = "bold") +
   scale_fill_distiller(palette = "RdBu", direction = -1) +
@@ -225,7 +242,7 @@ p2 = ggplot(data, aes(x = d2_p, y = post_d2_w)) +
        fill = "days")
 ggarrange(p1, p2, nrow = 1, ncol = 2, align = "hv", common.legend = TRUE,
           legend = "right")
-ggsave("figures/scenario3_dp_posterior_measurement.jpg", width = 7.5, height = 3.5)
+ggsave("figures/Figure_8_scenario3_dp_posterior_measurement.jpg", width = 7.5, height = 3.5)
 
 ggplot(data) +
   geom_point(aes(x = RH_mean, y = 1e2*post_night_RH), color = "blue", shape = 21) +
